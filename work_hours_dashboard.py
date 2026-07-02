@@ -192,9 +192,11 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         .sort_values("work_date")
     )
     df_daily["arrival_hour"] = (
-        df_daily["first_start"].dt.hour + df_daily["first_start"].dt.minute / 60
+        (df_daily["first_start"] - df_daily["work_date"]).dt.total_seconds() / 3600
     )
-    df_daily["leave_hour"] = df_daily["last_end"].dt.hour + df_daily["last_end"].dt.minute / 60
+    df_daily["leave_hour"] = (
+        (df_daily["last_end"] - df_daily["work_date"]).dt.total_seconds() / 3600
+    )
     df_daily["weekday"] = df_daily["work_date"].dt.weekday
     df_daily_weekdays = df_daily[df_daily["weekday"] < 5].copy()
     df_daily_weekdays["week_start"] = (
@@ -523,7 +525,9 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
     fig.update_xaxes(range=[year_start, year_end + pd.Timedelta(days=1)], row=1, col=1)
     fig.update_xaxes(rangeslider_visible=show_rangeslider, row=2, col=1)
     fig.update_yaxes(title_text="Hours", row=1, col=1)
-    fig.update_yaxes(title_text="Hour of Day", autorange="reversed", row=2, col=1)
+    max_time = df_daily[["arrival_hour", "leave_hour"]].max().max() if not df_daily.empty else 24
+    bottom_time = max(25, min(28, max_time + 1))
+    fig.update_yaxes(title_text="Hour of Day", range=[bottom_time, 0], row=2, col=1)
 
     return fig
 
