@@ -22,11 +22,16 @@ def decimal_to_time_string(decimal_hour: float) -> str:
     return f"{h:02d}:{m:02d}"
 
 
+def parse_datetime_column(values: pd.Series) -> pd.Series:
+    parsed = pd.to_datetime(values, errors="coerce", utc=True)
+    return parsed.dt.tz_convert(None)
+
+
 def clean_hours_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     df["start_clean"] = df["start"].astype(str).str.replace(r"\s*\(.*\)", "", regex=True)
     df["end_clean"] = df["end"].astype(str).str.replace(r"\s*\(.*\)", "", regex=True)
-    df["start_dt"] = pd.to_datetime(df["start_clean"], errors="coerce")
-    df["end_dt"] = pd.to_datetime(df["end_clean"], errors="coerce")
+    df["start_dt"] = parse_datetime_column(df["start_clean"])
+    df["end_dt"] = parse_datetime_column(df["end_clean"])
     df = df.dropna(subset=["start_dt", "end_dt"]).sort_values("start_dt")
 
     df["hours"] = df["hours"].astype(str).str.replace(",", ".").str.strip()
