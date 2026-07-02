@@ -23,8 +23,15 @@ def decimal_to_time_string(decimal_hour: float) -> str:
 
 
 def parse_datetime_column(values: pd.Series) -> pd.Series:
-    parsed = pd.to_datetime(values, errors="coerce", utc=True)
-    return parsed.dt.tz_convert(None)
+    def parse_one(value):
+        parsed = pd.to_datetime(value, errors="coerce")
+        if pd.isna(parsed):
+            return pd.NaT
+        if getattr(parsed, "tzinfo", None) is not None:
+            return parsed.tz_localize(None)
+        return parsed
+
+    return values.apply(parse_one)
 
 
 def clean_hours_dataframe(df: pd.DataFrame) -> pd.DataFrame:
