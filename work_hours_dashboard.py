@@ -64,9 +64,9 @@ def load_data_from_notion() -> pd.DataFrame:
     if not token or not database_id:
         raise RuntimeError("NOTION_TOKEN and NOTION_DATABASE_ID must both be set.")
 
-    start_property = os.environ.get("NOTION_START_PROPERTY", "start")
-    end_property = os.environ.get("NOTION_END_PROPERTY", "end")
-    hours_property = os.environ.get("NOTION_HOURS_PROPERTY", "hours")
+    start_property = os.environ.get("NOTION_START_PROPERTY") or "start"
+    end_property = os.environ.get("NOTION_END_PROPERTY") or "end"
+    hours_property = os.environ.get("NOTION_HOURS_PROPERTY") or "hours"
 
     headers = {
         "Authorization": f"Bearer {token}",
