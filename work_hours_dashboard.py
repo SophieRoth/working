@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+from pandas.tseries.holiday import USFederalHolidayCalendar
 import requests
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -169,6 +170,23 @@ def load_vacations() -> list[dict]:
     return vacations
 
 
+
+def count_vacation_weekdays(vacations: list[dict], start: pd.Timestamp, end: pd.Timestamp) -> int:
+    holidays = set(USFederalHolidayCalendar().holidays(start=start, end=end).normalize())
+    vacation_days = set()
+
+    for vacation in vacations:
+        vacation_start = max(vacation["start_dt"].normalize(), start)
+        vacation_end = min(vacation["end_dt"].normalize(), end)
+        if vacation_start > vacation_end:
+            continue
+
+        for day in pd.date_range(vacation_start, vacation_end, freq="D"):
+            if day.weekday() < 5 and day.normalize() not in holidays:
+                vacation_days.add(day.normalize())
+
+    return len(vacation_days)
+
 def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int]) -> go.Figure:
     if year is None:
         first_date = df_all["start_dt"].min().normalize()
@@ -188,6 +206,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
     display_vacations = [
         v for v in vacations if not (v["end_dt"] < year_start or v["start_dt"] > year_end)
     ]
+    vacation_weekdays = count_vacation_weekdays(display_vacations, year_start, year_end)
 
     for v in vacations:
         mask = (df["start_dt"] >= v["start_dt"]) & (df["start_dt"] <= v["end_dt"])
@@ -346,10 +365,15 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             f"{avg_weekly:.1f} hrs" if pd.notna(avg_weekly) else "N/A",
             "5-day adjusted",
         ),
+        (
+            "Vacation Days",
+            f"{vacation_weekdays} days",
+            "Weekdays, excl. U.S. holidays",
+        ),
     ]
-    card_width = 0.22
-    card_gap = 0.025
-    card_left = 0.02
+    card_width = 0.178
+    card_gap = 0.015
+    card_left = 0.018
     for idx, (label, value, note) in enumerate(stat_cards):
         x0 = card_left + idx * (card_width + card_gap)
         x1 = x0 + card_width
