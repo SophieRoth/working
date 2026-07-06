@@ -2,7 +2,8 @@ name: Update and Deploy Work Hours Dashboard
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    # GitHub Actions schedules use UTC. This runs at 12pm and 10pm Eastern during daylight saving time.
+    - cron: "0 16,2 * * *"
   workflow_dispatch:
   push:
     branches:
