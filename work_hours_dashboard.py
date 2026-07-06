@@ -16,11 +16,8 @@ PLOTLY_CONFIG = {
     "scrollZoom": False,
     "doubleClick": "reset",
     "modeBarButtonsToRemove": [
-        "zoom2d",
         "select2d",
         "lasso2d",
-        "zoomIn2d",
-        "zoomOut2d",
         "autoScale2d",
     ],
 }
