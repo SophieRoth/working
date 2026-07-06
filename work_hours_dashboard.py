@@ -10,6 +10,21 @@ from plotly.subplots import make_subplots
 
 PROJECT_DIR = Path(__file__).resolve().parent
 
+PLOTLY_CONFIG = {
+    "displaylogo": False,
+    "responsive": True,
+    "scrollZoom": False,
+    "doubleClick": "reset",
+    "modeBarButtonsToRemove": [
+        "zoom2d",
+        "select2d",
+        "lasso2d",
+        "zoomIn2d",
+        "zoomOut2d",
+        "autoScale2d",
+    ],
+}
+
 
 def decimal_to_time_string(decimal_hour: float) -> str:
     if pd.isna(decimal_hour):
@@ -641,13 +656,15 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         )
 
     fig.update_layout(
-        height=860,
-        width=1180,
+        height=760,
+        width=1040,
+        autosize=True,
         title=f"Work Hours Overview for {title_period} (Vacation-Adjusted)",
         template="plotly_white",
         showlegend=True,
         bargap=0.02,
-        margin=dict(t=90, r=100, l=55, b=40),
+        dragmode="pan",
+        margin=dict(t=78, r=92, l=52, b=34),
     )
     month_tick_format = "%b\n%Y" if (year_end - year_start).days > 370 else "%b"
     fig.update_xaxes(visible=False, row=1, col=1)
@@ -676,21 +693,21 @@ def main() -> None:
 
         output_html = PROJECT_DIR / f"work_hours_{year}.html"
         docs_year_html = docs_dir / f"work_hours_{year}.html"
-        fig.write_html(output_html.as_posix(), auto_open=False)
-        fig.write_html(docs_year_html.as_posix(), auto_open=False)
+        fig.write_html(output_html.as_posix(), auto_open=False, config=PLOTLY_CONFIG)
+        fig.write_html(docs_year_html.as_posix(), auto_open=False, config=PLOTLY_CONFIG)
         print(f"Saved: {output_html}")
         print(f"Saved: {docs_year_html}")
 
         if year == 2026:
             docs_index = docs_dir / "index.html"
-            fig.write_html(docs_index.as_posix(), auto_open=False)
+            fig.write_html(docs_index.as_posix(), auto_open=False, config=PLOTLY_CONFIG)
             print(f"Saved: {docs_index}")
 
     fig_all = build_figure(df_all=df_all, vacations=vacations, year=None)
     output_all = PROJECT_DIR / "work_hours_all_years.html"
     docs_all = docs_dir / "work_hours_all_years.html"
-    fig_all.write_html(output_all.as_posix(), auto_open=False)
-    fig_all.write_html(docs_all.as_posix(), auto_open=False)
+    fig_all.write_html(output_all.as_posix(), auto_open=False, config=PLOTLY_CONFIG)
+    fig_all.write_html(docs_all.as_posix(), auto_open=False, config=PLOTLY_CONFIG)
     print(f"Saved: {output_all}")
     print(f"Saved: {docs_all}")
 
