@@ -443,13 +443,8 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             y=avg_weekly,
             line_dash="dash",
             line_color="blue",
-            annotation_text=(
-                f"Weekly Avg (5-Day Adjusted): {avg_weekly:.1f} hrs"
-            ),
-            annotation_position="top right",
             row=2,
             col=1,
-            annotation=dict(bgcolor="rgba(255,255,255,0.8)", bordercolor="blue", borderwidth=1),
         )
 
     for v in display_vacations:
@@ -561,18 +556,8 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             line_dash="dash",
             line_width=2,
             line_color="#2c7fb8",
-            annotation_text=f"Arrival Avg: {decimal_to_time_string(avg_arrival)}",
-            annotation_position="top right",
             row=3,
             col=1,
-            annotation=dict(
-                xref="x3",
-                x=1.01,
-                xanchor="left",
-                bgcolor="rgba(255,255,255,0.85)",
-                bordercolor="#2c7fb8",
-                borderwidth=1,
-            ),
         )
 
     fig.add_trace(
@@ -599,18 +584,8 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             line_dash="dash",
             line_width=2,
             line_color="#238443",
-            annotation_text=f"Leave Avg: {decimal_to_time_string(avg_leave)}",
-            annotation_position="top right",
             row=3,
             col=1,
-            annotation=dict(
-                xref="x3",
-                x=1.01,
-                xanchor="left",
-                bgcolor="rgba(255,255,255,0.85)",
-                bordercolor="#238443",
-                borderwidth=1,
-            ),
         )
 
     fig.add_trace(
@@ -625,23 +600,6 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         row=3,
         col=1,
     )
-
-    if pd.notna(avg_arrival) and pd.notna(avg_leave) and pd.notna(avg_workday_hours):
-        avg_midpoint = (avg_arrival + avg_leave) / 2
-        fig.add_annotation(
-            x=1.01,
-            y=avg_midpoint,
-            xref="x3 domain",
-            yref="y3",
-            text=f"Avg Workday Hours: {avg_workday_hours:.1f}",
-            showarrow=False,
-            xanchor="left",
-            yanchor="middle",
-            font=dict(color="#333333"),
-            bgcolor="rgba(255,255,255,0.9)",
-            bordercolor="#6b6b6b",
-            borderwidth=1,
-        )
 
     for v in display_vacations:
         fig.add_vrect(
