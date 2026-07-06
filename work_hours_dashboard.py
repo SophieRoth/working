@@ -158,10 +158,22 @@ def load_vacations() -> list[dict]:
 
     vacations = []
     for _, row in vacations_df.dropna(subset=["start", "end"]).iterrows():
+        counts_as_pto = True
+        if "counts_as_pto" in vacations_df.columns and pd.notna(row.get("counts_as_pto")):
+            counts_as_pto = str(row["counts_as_pto"]).strip().lower() not in {
+                "false",
+                "no",
+                "0",
+                "work",
+                "conference",
+                "seminar",
+            }
+
         vacation = {
             "name": str(row["name"]).strip() if pd.notna(row["name"]) else "Vacation",
             "start": str(row["start"]).strip(),
             "end": str(row["end"]).strip(),
+            "counts_as_pto": counts_as_pto,
         }
         vacation["start_dt"] = pd.to_datetime(vacation["start"])
         vacation["end_dt"] = pd.to_datetime(vacation["end"])
@@ -176,6 +188,9 @@ def count_vacation_weekdays(vacations: list[dict], start: pd.Timestamp, end: pd.
     vacation_days = set()
 
     for vacation in vacations:
+        if not vacation.get("counts_as_pto", True):
+            continue
+
         vacation_start = max(vacation["start_dt"].normalize(), start)
         vacation_end = min(vacation["end_dt"].normalize(), end)
         if vacation_start > vacation_end:
