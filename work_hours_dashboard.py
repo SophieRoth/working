@@ -298,8 +298,8 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         rows=3,
         cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.08,
-        row_heights=[0.14, 0.43, 0.43],
+        vertical_spacing=0.075,
+        row_heights=[0.16, 0.42, 0.42],
         specs=[[{"type": "xy"}], [{"type": "xy"}], [{"type": "xy"}]],
         subplot_titles=(
             f"Summary ({title_period})",
@@ -327,12 +327,12 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         (
             "Avg Workday",
             f"{avg_workday_hours:.1f} hrs" if pd.notna(avg_workday_hours) else "N/A",
-            "Weekend hours spread across weekdays",
+            "Weekend hours allocated",
         ),
         (
             "Weekly Avg",
             f"{avg_weekly:.1f} hrs" if pd.notna(avg_weekly) else "N/A",
-            "Weekdays corrected + weekend allocation",
+            "5-day adjusted",
         ),
     ]
     card_width = 0.22
@@ -345,8 +345,8 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             type="rect",
             x0=x0,
             x1=x1,
-            y0=0.16,
-            y1=0.84,
+            y0=0.12,
+            y1=0.88,
             xref="x domain",
             yref="y domain",
             fillcolor="#fbfdff",
@@ -357,7 +357,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         )
         fig.add_annotation(
             x=(x0 + x1) / 2,
-            y=0.64,
+            y=0.62,
             xref="x domain",
             yref="y domain",
             text=f"<b>{value}</b>",
@@ -369,7 +369,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         )
         fig.add_annotation(
             x=(x0 + x1) / 2,
-            y=0.42,
+            y=0.41,
             xref="x domain",
             yref="y domain",
             text=label,
@@ -381,12 +381,12 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         )
         fig.add_annotation(
             x=(x0 + x1) / 2,
-            y=0.25,
+            y=0.23,
             xref="x domain",
             yref="y domain",
             text=note,
             showarrow=False,
-            font=dict(size=10, color="#7a8799"),
+            font=dict(size=9, color="#7a8799"),
             yanchor="middle",
             row=1,
             col=1,
