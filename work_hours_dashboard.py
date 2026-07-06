@@ -266,15 +266,111 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
     avg_weekly = tracked_weeks["projected_hours"].mean()
 
     fig = make_subplots(
-        rows=2,
+        rows=3,
         cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.16,
+        vertical_spacing=0.09,
+        row_heights=[0.16, 0.42, 0.42],
+        specs=[[{"type": "xy"}], [{"type": "xy"}], [{"type": "xy"}]],
         subplot_titles=(
+            f"Summary ({title_period})",
             f"Weekly Hours Overview ({title_period})",
             f"Arrival and Leaving Time at Work ({title_period})",
         ),
     )
+
+    fig.add_trace(
+        go.Scatter(
+            x=[0],
+            y=[0],
+            mode="markers",
+            marker=dict(opacity=0),
+            showlegend=False,
+            hoverinfo="skip",
+        ),
+        row=1,
+        col=1,
+    )
+
+    stat_cards = [
+        ("Typical Arrival", decimal_to_time_string(avg_arrival), "Weekdays only"),
+        ("Typical Leave", decimal_to_time_string(avg_leave), "Weekdays only"),
+        (
+            "Avg Workday",
+            f"{avg_workday_hours:.1f} hrs" if pd.notna(avg_workday_hours) else "N/A",
+            "Weekdays only",
+        ),
+        (
+            "Weekly Avg",
+            f"{avg_weekly:.1f} hrs" if pd.notna(avg_weekly) else "N/A",
+            "5-day adjusted",
+        ),
+    ]
+    card_width = 0.22
+    card_gap = 0.025
+    card_left = 0.02
+    for idx, (label, value, note) in enumerate(stat_cards):
+        x0 = card_left + idx * (card_width + card_gap)
+        x1 = x0 + card_width
+        fig.add_shape(
+            type="rect",
+            x0=x0,
+            x1=x1,
+            y0=0.10,
+            y1=0.90,
+            xref="x domain",
+            yref="y domain",
+            fillcolor="#f7faff",
+            line=dict(color="#d7e0ec", width=1),
+            layer="below",
+            row=1,
+            col=1,
+        )
+        fig.add_annotation(
+            x=(x0 + x1) / 2,
+            y=0.67,
+            xref="x domain",
+            yref="y domain",
+            text=f"<b>{value}</b>",
+            showarrow=False,
+            font=dict(size=20, color="#1f2d4a"),
+            row=1,
+            col=1,
+        )
+        fig.add_annotation(
+            x=(x0 + x1) / 2,
+            y=0.39,
+            xref="x domain",
+            yref="y domain",
+            text=label,
+            showarrow=False,
+            font=dict(size=12, color="#53647f"),
+            row=1,
+            col=1,
+        )
+        fig.add_annotation(
+            x=(x0 + x1) / 2,
+            y=0.20,
+            xref="x domain",
+            yref="y domain",
+            text=note,
+            showarrow=False,
+            font=dict(size=10, color="#7a8799"),
+            row=1,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[(x0 + x1) / 2],
+                y=[0.50],
+                mode="markers",
+                marker=dict(size=70, color="rgba(0,0,0,0.01)"),
+                showlegend=False,
+                hovertemplate=f"{label}<br>{value}<br>{note}<extra></extra>",
+            ),
+            row=1,
+            col=1,
+        )
 
     fig.add_trace(
         go.Bar(
@@ -291,7 +387,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
                 "Hours: %{y:.1f}<extra></extra>"
             ),
         ),
-        row=1,
+        row=2,
         col=1,
     )
 
@@ -304,7 +400,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
                 f"Weekly Avg (5-Day Adjusted): {avg_weekly:.1f} hrs"
             ),
             annotation_position="top right",
-            row=1,
+            row=2,
             col=1,
             annotation=dict(bgcolor="rgba(255,255,255,0.8)", bordercolor="blue", borderwidth=1),
         )
@@ -316,7 +412,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             fillcolor="lightgrey",
             opacity=0.22,
             line_width=0,
-            row=1,
+            row=2,
             col=1,
         )
 
@@ -345,7 +441,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             showlegend=False,
             hoverinfo="skip",
         ),
-        row=1,
+        row=2,
         col=1,
     )
 
@@ -370,7 +466,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
                 showlegend=False,
                 name="",
             ),
-            row=1,
+            row=2,
             col=1,
         )
 
@@ -390,7 +486,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             showlegend=False,
             hoverinfo="skip",
         ),
-        row=2,
+        row=3,
         col=1,
     )
 
@@ -408,7 +504,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
                 "Worked: %{customdata[1]:.1f} hrs<extra></extra>"
             ),
         ),
-        row=2,
+        row=3,
         col=1,
     )
     if pd.notna(avg_arrival):
@@ -419,10 +515,10 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             line_color="#2c7fb8",
             annotation_text=f"Arrival Avg: {decimal_to_time_string(avg_arrival)}",
             annotation_position="top right",
-            row=2,
+            row=3,
             col=1,
             annotation=dict(
-                xref="x2",
+                xref="x3",
                 x=1.01,
                 xanchor="left",
                 bgcolor="rgba(255,255,255,0.85)",
@@ -445,7 +541,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
                 "Worked: %{customdata[1]:.1f} hrs<extra></extra>"
             ),
         ),
-        row=2,
+        row=3,
         col=1,
     )
     if pd.notna(avg_leave):
@@ -456,10 +552,10 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             line_color="#238443",
             annotation_text=f"Leave Avg: {decimal_to_time_string(avg_leave)}",
             annotation_position="top right",
-            row=2,
+            row=3,
             col=1,
             annotation=dict(
-                xref="x2",
+                xref="x3",
                 x=1.01,
                 xanchor="left",
                 bgcolor="rgba(255,255,255,0.85)",
@@ -477,7 +573,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             name="Weekend (Sat/Sun)",
             hoverinfo="skip",
         ),
-        row=2,
+        row=3,
         col=1,
     )
 
@@ -486,8 +582,8 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         fig.add_annotation(
             x=1.01,
             y=avg_midpoint,
-            xref="x2 domain",
-            yref="y2",
+            xref="x3 domain",
+            yref="y3",
             text=f"Avg Workday Hours: {avg_workday_hours:.1f}",
             showarrow=False,
             xanchor="left",
@@ -506,12 +602,12 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             opacity=0.24,
             line_width=0,
             layer="below",
-            row=2,
+            row=3,
             col=1,
         )
 
     fig.update_layout(
-        height=760,
+        height=860,
         width=1180,
         title=f"Work Hours Overview for {title_period} (Vacation-Adjusted)",
         template="plotly_white",
@@ -520,14 +616,16 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         margin=dict(t=90, r=100, l=55, b=40),
     )
     month_tick_format = "%b\n%Y" if (year_end - year_start).days > 370 else "%b"
-    fig.update_xaxes(row=1, col=1, tickformat=month_tick_format, dtick="M1", showticklabels=True)
-    fig.update_xaxes(row=2, col=1, tickformat=month_tick_format, dtick="M1", matches="x")
-    fig.update_xaxes(range=[year_start, year_end + pd.Timedelta(days=1)], row=1, col=1)
-    fig.update_xaxes(rangeslider_visible=show_rangeslider, row=2, col=1)
-    fig.update_yaxes(title_text="Hours", row=1, col=1)
+    fig.update_xaxes(visible=False, row=1, col=1)
+    fig.update_yaxes(visible=False, row=1, col=1)
+    fig.update_xaxes(row=2, col=1, tickformat=month_tick_format, dtick="M1", showticklabels=True)
+    fig.update_xaxes(row=3, col=1, tickformat=month_tick_format, dtick="M1", matches="x")
+    fig.update_xaxes(range=[year_start, year_end + pd.Timedelta(days=1)], row=2, col=1)
+    fig.update_xaxes(rangeslider_visible=show_rangeslider, row=3, col=1)
+    fig.update_yaxes(title_text="Hours", row=2, col=1)
     max_time = df_daily[["arrival_hour", "leave_hour"]].max().max() if not df_daily.empty else 24
     bottom_time = max(25, min(28, max_time + 1))
-    fig.update_yaxes(title_text="Hour of Day", range=[bottom_time, 0], row=2, col=1)
+    fig.update_yaxes(title_text="Hour of Day", range=[bottom_time, 0], row=3, col=1)
 
     return fig
 
