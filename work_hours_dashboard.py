@@ -358,7 +358,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         (
             "Avg Workday",
             f"{avg_workday_hours:.1f} hrs" if pd.notna(avg_workday_hours) else "N/A",
-            "Weekend hours allocated",
+            "Weekend hours allocated across weekdays",
         ),
         (
             "Weekly Avg",
@@ -368,71 +368,43 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         (
             "Vacation Days",
             f"{vacation_weekdays} days",
-            "Weekdays, excl. U.S. holidays",
+            "Weekdays only, excluding U.S. federal holidays",
         ),
     ]
-    card_width = 0.178
-    card_gap = 0.015
-    card_left = 0.018
-    for idx, (label, value, note) in enumerate(stat_cards):
-        x0 = card_left + idx * (card_width + card_gap)
-        x1 = x0 + card_width
-        fig.add_shape(
-            type="rect",
-            x0=x0,
-            x1=x1,
-            y0=0.12,
-            y1=0.88,
-            xref="x domain",
-            yref="y domain",
-            fillcolor="#fbfdff",
-            line=dict(color="#d7e0ec", width=1.2),
-            layer="below",
-            row=1,
-            col=1,
-        )
+    card_centers = [0.10, 0.30, 0.50, 0.70, 0.90]
+    for x, (label, value, note) in zip(card_centers, stat_cards):
         fig.add_annotation(
-            x=(x0 + x1) / 2,
+            x=x,
             y=0.62,
             xref="x domain",
             yref="y domain",
             text=f"<b>{value}</b>",
             showarrow=False,
             font=dict(size=18, color="#1f2d4a"),
-            yanchor="bottom",
-            row=1,
-            col=1,
-        )
-        fig.add_annotation(
-            x=(x0 + x1) / 2,
-            y=0.41,
-            xref="x domain",
-            yref="y domain",
-            text=label,
-            showarrow=False,
-            font=dict(size=12, color="#53647f"),
+            xanchor="center",
             yanchor="middle",
             row=1,
             col=1,
         )
         fig.add_annotation(
-            x=(x0 + x1) / 2,
-            y=0.23,
+            x=x,
+            y=0.34,
             xref="x domain",
             yref="y domain",
-            text=note,
+            text=label,
             showarrow=False,
-            font=dict(size=9, color="#7a8799"),
+            font=dict(size=11, color="#53647f"),
+            xanchor="center",
             yanchor="middle",
             row=1,
             col=1,
         )
         fig.add_trace(
             go.Scatter(
-                x=[(x0 + x1) / 2],
+                x=[x],
                 y=[0.50],
                 mode="markers",
-                marker=dict(size=110, color="rgba(0,0,0,0)", line=dict(width=0)),
+                marker=dict(size=95, color="rgba(0,0,0,0)", line=dict(width=0)),
                 showlegend=False,
                 hovertemplate=f"{label}<br>{value}<br>{note}<extra></extra>",
             ),
