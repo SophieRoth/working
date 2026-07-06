@@ -198,13 +198,27 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         (df_daily["last_end"] - df_daily["work_date"]).dt.total_seconds() / 3600
     )
     df_daily["weekday"] = df_daily["work_date"].dt.weekday
-    df_daily_weekdays = df_daily[df_daily["weekday"] < 5].copy()
-    df_daily_weekdays["week_start"] = (
-        df_daily_weekdays["work_date"]
-        - pd.to_timedelta(df_daily_weekdays["work_date"].dt.weekday, unit="D")
+    df_daily["week_start"] = (
+        df_daily["work_date"] - pd.to_timedelta(df_daily["work_date"].dt.weekday, unit="D")
     )
-    arrival_colors = ["red" if d >= 5 else "#1f77b4" for d in df_daily["weekday"]]
-    leave_colors = ["red" if d >= 5 else "#2ca02c" for d in df_daily["weekday"]]
+    df_daily["is_weekend"] = df_daily["weekday"] >= 5
+    df_daily["is_after_noon_arrival"] = (
+        (~df_daily["is_weekend"]) & (df_daily["arrival_hour"] >= 12)
+    )
+    df_daily["special_day"] = df_daily["is_weekend"] | df_daily["is_after_noon_arrival"]
+    df_daily["day_type"] = "Regular weekday"
+    df_daily.loc[df_daily["is_weekend"], "day_type"] = "Weekend"
+    df_daily.loc[df_daily["is_after_noon_arrival"], "day_type"] = "After-noon weekday arrival"
+    df_daily.loc[
+        df_daily["is_weekend"] & (df_daily["arrival_hour"] >= 12), "day_type"
+    ] = "Weekend + after-noon arrival"
+
+    df_daily_weekdays = df_daily[~df_daily["is_weekend"]].copy()
+    df_daily_regular_weekdays = df_daily_weekdays[
+        ~df_daily_weekdays["is_after_noon_arrival"]
+    ].copy()
+    arrival_colors = ["red" if special else "#1f77b4" for special in df_daily["special_day"]]
+    leave_colors = ["red" if special else "#2ca02c" for special in df_daily["special_day"]]
 
     df["week_start"] = (
         df["start_dt"].dt.normalize() - pd.to_timedelta(df["start_dt"].dt.weekday, unit="D")
@@ -230,17 +244,29 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         overlap = (df_weekly["week_start"] <= v["end_dt"]) & (df_weekly["week_end"] >= v["start_dt"])
         df_weekly.loc[overlap, "has_vacation_overlap"] = True
 
-    avg_arrival = df_daily_weekdays["arrival_hour"].mean()
-    avg_leave = df_daily_weekdays["leave_hour"].mean()
-    avg_workday_hours = df_daily_weekdays["daily_hours"].mean()
-    if not df_daily_weekdays.empty:
+    # Arrival/leave averages describe the normal weekday pattern, so weekends
+    # and after-noon arrivals are shown but excluded from these timing averages.
+    avg_arrival = df_daily_regular_weekdays["arrival_hour"].mean()
+    avg_leave = df_daily_regular_weekdays["leave_hour"].mean()
+
+    if not df_daily.empty:
         first_tracked_date = df["start_dt"].min().normalize()
         last_tracked_date = df["start_dt"].max().normalize()
         normalized_weeks = (
-            df_daily_weekdays.groupby("week_start", as_index=False)
+            df_daily.groupby("week_start", as_index=False)
             .agg(
-                total_hours=("daily_hours", "sum"),
-                worked_days=("work_date", "nunique"),
+                weekday_hours=(
+                    "daily_hours",
+                    lambda s: s[df_daily.loc[s.index, "weekday"] < 5].sum(),
+                ),
+                weekend_hours=(
+                    "daily_hours",
+                    lambda s: s[df_daily.loc[s.index, "weekday"] >= 5].sum(),
+                ),
+                worked_weekdays=(
+                    "work_date",
+                    lambda s: s[df_daily.loc[s.index, "weekday"] < 5].nunique(),
+                ),
             )
             .sort_values("week_start")
         )
@@ -256,13 +282,16 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             (normalized_weeks["week_start"] >= first_tracked_date)
             & (normalized_weeks["week_start"] <= last_tracked_date)
             & (~normalized_weeks["has_vacation_overlap"])
-            & (normalized_weeks["worked_days"] > 0)
+            & (normalized_weeks["worked_weekdays"] > 0)
         ].copy()
-        tracked_weeks["projected_hours"] = (
-            tracked_weeks["total_hours"] / tracked_weeks["worked_days"] * 5
+        tracked_weeks["adjusted_daily_hours"] = (
+            tracked_weeks["weekday_hours"] / tracked_weeks["worked_weekdays"]
+            + tracked_weeks["weekend_hours"] / 5
         )
+        tracked_weeks["projected_hours"] = tracked_weeks["adjusted_daily_hours"] * 5
     else:
-        tracked_weeks = pd.DataFrame(columns=["projected_hours"])
+        tracked_weeks = pd.DataFrame(columns=["adjusted_daily_hours", "projected_hours"])
+    avg_workday_hours = tracked_weeks["adjusted_daily_hours"].mean()
     avg_weekly = tracked_weeks["projected_hours"].mean()
 
     fig = make_subplots(
@@ -293,17 +322,17 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
     )
 
     stat_cards = [
-        ("Typical Arrival", decimal_to_time_string(avg_arrival), "Weekdays only"),
-        ("Typical Leave", decimal_to_time_string(avg_leave), "Weekdays only"),
+        ("Typical Arrival", decimal_to_time_string(avg_arrival), "Regular weekdays"),
+        ("Typical Leave", decimal_to_time_string(avg_leave), "Regular weekdays"),
         (
             "Avg Workday",
             f"{avg_workday_hours:.1f} hrs" if pd.notna(avg_workday_hours) else "N/A",
-            "Weekdays only",
+            "Weekend hours spread across weekdays",
         ),
         (
             "Weekly Avg",
             f"{avg_weekly:.1f} hrs" if pd.notna(avg_weekly) else "N/A",
-            "5-day adjusted",
+            "Weekdays corrected + weekend allocation",
         ),
     ]
     card_width = 0.22
@@ -497,14 +526,15 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         go.Scatter(
             x=df_daily["work_date"],
             y=df_daily["arrival_hour"],
-            customdata=df_daily[["first_start", "daily_hours"]].to_numpy(),
+            customdata=df_daily[["first_start", "daily_hours", "day_type"]].to_numpy(),
             mode="markers",
             name="Arrival",
             marker=dict(size=5, color=arrival_colors),
             hovertemplate=(
                 "Date: %{x|%b %-d, %Y}<br>"
                 "Arrival: %{customdata[0]|%H:%M}<br>"
-                "Worked: %{customdata[1]:.1f} hrs<extra></extra>"
+                "Worked: %{customdata[1]:.1f} hrs<br>"
+                "Type: %{customdata[2]}<extra></extra>"
             ),
         ),
         row=3,
@@ -534,14 +564,15 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
         go.Scatter(
             x=df_daily["work_date"],
             y=df_daily["leave_hour"],
-            customdata=df_daily[["last_end", "daily_hours"]].to_numpy(),
+            customdata=df_daily[["last_end", "daily_hours", "day_type"]].to_numpy(),
             mode="markers",
             name="Leave",
             marker=dict(size=5, color=leave_colors),
             hovertemplate=(
                 "Date: %{x|%b %-d, %Y}<br>"
                 "Leave: %{customdata[0]|%H:%M}<br>"
-                "Worked: %{customdata[1]:.1f} hrs<extra></extra>"
+                "Worked: %{customdata[1]:.1f} hrs<br>"
+                "Type: %{customdata[2]}<extra></extra>"
             ),
         ),
         row=3,
@@ -573,7 +604,7 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
             y=[None],
             mode="markers",
             marker=dict(size=7, color="red"),
-            name="Weekend (Sat/Sun)",
+            name="Weekend or after-noon arrival",
             hoverinfo="skip",
         ),
         row=3,
