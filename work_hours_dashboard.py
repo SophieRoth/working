@@ -14,7 +14,7 @@ PROJECT_DIR = Path(__file__).resolve().parent
 PLOTLY_CONFIG = {
     "displaylogo": False,
     "responsive": True,
-    "scrollZoom": False,
+    "scrollZoom": True,
     "doubleClick": "reset",
     "modeBarButtonsToRemove": [
         "select2d",
