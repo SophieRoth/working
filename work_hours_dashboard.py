@@ -637,12 +637,33 @@ def build_figure(df_all: pd.DataFrame, vacations: list[dict], year: Optional[int
     fig.update_yaxes(visible=False, row=1, col=1)
     fig.update_xaxes(row=2, col=1, tickformat=month_tick_format, dtick="M1", showticklabels=True)
     fig.update_xaxes(row=3, col=1, tickformat=month_tick_format, dtick="M1", matches="x")
-    fig.update_xaxes(range=[year_start, year_end + pd.Timedelta(days=1)], row=2, col=1)
-    fig.update_xaxes(rangeslider_visible=show_rangeslider, row=3, col=1)
-    fig.update_yaxes(title_text="Hours", row=2, col=1)
+    x_min = year_start
+    x_max = year_end + pd.Timedelta(days=1)
+    fig.update_xaxes(range=[x_min, x_max], minallowed=x_min, maxallowed=x_max, row=2, col=1)
+    fig.update_xaxes(rangeslider_visible=show_rangeslider, minallowed=x_min, maxallowed=x_max, row=3, col=1)
+    weekly_y_max = max(df_weekly["hours"].max(), avg_weekly if pd.notna(avg_weekly) else 0)
+    if pd.isna(weekly_y_max) or weekly_y_max <= 0:
+        weekly_y_max = 10
+    weekly_y_max *= 1.18
+    fig.update_yaxes(
+        title_text="Hours",
+        range=[0, weekly_y_max],
+        minallowed=0,
+        maxallowed=weekly_y_max,
+        row=2,
+        col=1,
+    )
+
     max_time = df_daily[["arrival_hour", "leave_hour"]].max().max() if not df_daily.empty else 24
-    bottom_time = max(25, min(28, max_time + 1))
-    fig.update_yaxes(title_text="Hour of Day", range=[bottom_time, 0], row=3, col=1)
+    bottom_time = 24 if pd.isna(max_time) or max_time <= 24 else min(28, max_time + 0.5)
+    fig.update_yaxes(
+        title_text="Hour of Day",
+        range=[bottom_time, 0],
+        minallowed=0,
+        maxallowed=bottom_time,
+        row=3,
+        col=1,
+    )
 
     return fig
 
